@@ -13,7 +13,7 @@ Ensure the following tools are installed on your system:
 ## Usage
 
 ```bash
-nomadexec [--address=<addr>] [--verbose] [--help]
+nomadexec [--address=<addr>] [--verbose] [--job=<job_name>] [--task=<task_name>] [--command=<command>] [--help]
 ```
 
 The Nomad server address is determined in the following order:
