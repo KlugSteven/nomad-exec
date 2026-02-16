@@ -14,16 +14,18 @@ VERBOSE=0
 JOB_NAME=""
 TASK_NAME=""
 COMMAND=""
+LOGS=0
 
 # Print usage information
 usage() {
-    echo "Usage: $0 [--address=<addr>] [--verbose] [--job=<job_name>] [--task=<task_name>] [--command=<command>] [--help]"
+    echo "Usage: $0 [--address=<addr>] [--verbose] [--job=<job_name>] [--task=<task_name>] [--command=<command>] [--logs] [--help]"
     echo "Options:"
     echo "  --address=<addr>  Specify the Nomad server address"
     echo "  --verbose         Enable verbose mode"
     echo "  --job=<job_name>  Specify the job name to skip selection"
     echo "  --task=<task_name> Specify the task name to skip selection"
     echo "  --command=<command> Specify a command to run without connecting to the shell"
+    echo "  --logs            Show and tail the logs of the selected task"
     echo "  --help            Show this help message"
     exit 0
 }
@@ -36,6 +38,7 @@ while [[ "$#" -gt 0 ]]; do
         --job=*) JOB_NAME="${1#*=}"; shift ;;
         --task=*) TASK_NAME="${1#*=}"; shift ;;
         --command=*) COMMAND="${1#*=}"; shift ;;
+        --logs) LOGS=1; shift ;;
         --help) usage ;;
         *) echo "Unknown parameter passed: $1"; usage ;;
     esac
@@ -43,7 +46,7 @@ done
 
 # Warn if using default localhost address
 if [ "$NOMAD_ADDR" == "http://127.0.0.1:4646" ]; then
-    echo "Warning: Using default address http://127.0.0.1:4646"
+    log "Warning: Using default address http://127.0.0.1:4646"
 fi
 
 # Verbose logging function
@@ -124,8 +127,12 @@ exec_with_fallback() {
     exit 1
 }
 
+# Show and tail logs if requested
+if [ "$LOGS" -eq 1 ]; then
+    log "Tailing logs for task: $task"
+    nomad alloc logs -address="$NOMAD_ADDR" -f -task "$task" "$alloc_id"
 # Execute the command directly if provided
-if [ -n "$COMMAND" ]; then
+elif [ -n "$COMMAND" ]; then
     log "Executing command: $COMMAND"
     nomad alloc exec -address="$NOMAD_ADDR" -i -t -task "$task" "$alloc_id" /bin/sh -c "$COMMAND"
 else
